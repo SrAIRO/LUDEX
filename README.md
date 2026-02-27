@@ -121,11 +121,9 @@ Go to:
 https://github.com/julianxhokaxhiu/hltb-scraper/releases/latest
 ```
 
-Download one of the following files:
+Download the following file:
 
 ```
-howlongtobeat_games.json
-OR
 howlongtobeat_games.csv
 ```
 
