@@ -1,0 +1,1870 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ludex — HLTB Tracker</title>
+  <style>
+    /* ===================== RESET & VARIABLES ===================== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0b0b12;
+      --bg2:          #141421;
+      --bg3:          #1b1b2b;
+      --bg4:          #24243a;
+      --border:       #2c2c40;
+      --accent:       #8b5cf6;
+      --accent-light: #a78bfa;
+      --accent-dim:   #c4b5fd;
+      --text:         #f3f4f6;
+      --text-muted:   #9ca3af;
+      --green:        #10b981;
+      --green-bg:     rgba(16,185,129,0.12);
+      --green-dark:   #065f46;
+      --red:          #ef4444;
+      --red-bg:       rgba(239,68,68,0.12);
+      --red-dark:     #7f1d1d;
+      --yellow:       #fbbf24;
+      --radius:       10px;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, var(--bg), #1a102a);
+      color: var(--text);
+      font-size: 15px;
+    }
+
+    /* ===================== HEADER ===================== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,11,18,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent-light);
+      letter-spacing: -0.3px;
+    }
+
+    header h1 span { color: var(--text-muted); font-weight: 400; }
+
+    /* ===================== LAYOUT ===================== */
+    main {
+      display: flex;
+      gap: 20px;
+      padding: 20px 24px;
+      min-height: calc(100vh - 61px);
+      align-items: flex-start;
+    }
+
+    .sidebar {
+      width: 320px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: sticky;
+      top: 81px;
+    }
+
+    .content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* ===================== CARDS ===================== */
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+
+    /* ===================== FORM FIELDS ===================== */
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    input[type="text"],
+    input[type="search"],
+    input[type="password"],
+    input[type="file"],
+    select {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #101018;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus { border-color: var(--accent); }
+
+    input[type="file"] {
+      padding: 6px 10px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    input[type="file"]::file-selector-button {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      margin-right: 8px;
+      transition: background 0.15s;
+    }
+
+    input[type="file"]::file-selector-button:hover {
+      background: var(--bg4);
+    }
+
+    /* ===================== BUTTONS ===================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      line-height: 1;
+    }
+
+    .btn:hover {
+      border-color: var(--accent);
+      background: var(--bg4);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: #7c3aed;
+      border-color: #7c3aed;
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 6px;
+    }
+
+    .btn-icon {
+      padding: 6px 8px;
+      font-size: 14px;
+    }
+
+    .btn-danger { color: var(--text-muted); }
+    .btn-danger:hover {
+      background: var(--red-dark);
+      border-color: var(--red);
+      color: white;
+    }
+
+    /* ===================== SUGGESTIONS ===================== */
+    #suggestions {
+      background: #181826;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-height: 210px;
+      overflow-y: auto;
+    }
+
+    .suggestion {
+      padding: 9px 12px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.1s;
+      user-select: none;
+    }
+
+    .suggestion:hover  { background: var(--bg4); }
+    .suggestion.active { background: var(--bg4); border-left: 2px solid var(--accent); padding-left: 10px; }
+
+    /* ===================== FILTERS ===================== */
+    .filters {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0;
+    }
+
+    .filter-chip input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .filter-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-pending   { background: var(--accent-light); }
+    .dot-completed { background: var(--green); }
+    .dot-dropped   { background: var(--red); }
+
+    /* ===================== LIST SEARCH BAR ===================== */
+    .list-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .list-search-icon {
+      position: absolute;
+      left: 10px;
+      display: flex;
+      align-items: center;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    .list-search-wrap input[type="search"] {
+      padding-left: 34px;
+    }
+
+    /* ===================== BANNER (sin DB) ===================== */
+    #noDatabaseBanner {
+      background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(11,11,18,0.5));
+      border: 1px dashed var(--accent);
+      border-radius: var(--radius);
+      padding: 36px 24px;
+      text-align: center;
+      display: none;
+    }
+
+    #noDatabaseBanner h2 {
+      color: var(--accent-light);
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    #noDatabaseBanner p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    #noDatabaseBanner code {
+      background: var(--bg3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: var(--accent-dim);
+    }
+
+    /* ===================== STATS ===================== */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+    }
+
+    .stat {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 10px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--accent-light);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    /* ===================== TABLE ===================== */
+    .table-wrapper { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      padding: 11px 14px;
+      color: var(--accent-dim);
+      border-bottom: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    thead th:nth-child(2) { text-align: left; }
+
+    thead th.sortable {
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.15s;
+    }
+
+    thead th.sortable:hover { color: white; }
+    thead th.sort-asc::after  { content: " ↑"; }
+    thead th.sort-desc::after { content: " ↓"; }
+
+    tbody td {
+      padding: 11px 14px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    tbody td:nth-child(2) { text-align: left; }
+
+    tbody tr { transition: background 0.15s; }
+    tbody tr:hover { background: rgba(139,92,246,0.06); }
+
+    .row-completed            { background: var(--green-bg); }
+    .row-dropped              { background: var(--red-bg); }
+    .row-completed:hover      { background: rgba(16,185,129,0.18); }
+    .row-dropped:hover        { background: rgba(239,68,68,0.18); }
+
+    /* ===================== STATUS BUTTONS ===================== */
+    .status-btns {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .status-btn {
+      border: 1px solid var(--border);
+      background: var(--bg3);
+      color: var(--text-muted);
+      padding: 4px 7px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .status-btn:hover { border-color: var(--accent); color: white; }
+
+    .status-btn.active-pending {
+      background: var(--bg4);
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+
+    .status-btn.active-completed {
+      background: var(--green-dark);
+      border-color: var(--green);
+      color: #d1fae5;
+    }
+
+    .status-btn.active-dropped {
+      background: var(--red-dark);
+      border-color: var(--red);
+      color: #fee2e2;
+    }
+
+    /* ===================== GAME NAME CELL ===================== */
+    .game-name { font-weight: 500; max-width: 260px; }
+
+    .game-hours { color: var(--text-muted); font-size: 12px; }
+
+    /* ===================== RATIO COLORS ===================== */
+    .ratio-high { color: #4ade80; font-weight: 600; }
+    .ratio-mid  { color: var(--yellow); }
+    .ratio-low  { color: var(--red); }
+
+    /* ===================== LOADING SPINNER ===================== */
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ===================== SCORE INDICATORS ===================== */
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    .score-source {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 4px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      vertical-align: middle;
+    }
+
+    .score-mc   { background: #ffcc00; color: #000; }
+    .score-rawg { background: var(--bg4); color: var(--accent-dim); border: 1px solid var(--border); }
+
+    .score-nokey {
+      color: var(--text-muted);
+      font-size: 13px;
+      cursor: default;
+    }
+
+    .score-err {
+      color: var(--yellow);
+      font-size: 12px;
+      cursor: pointer;
+      title: "Haz clic para reintentar";
+    }
+
+    /* ===================== API STATUS DOT ===================== */
+    .api-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    .api-dot.ok   { background: var(--green); }
+    .api-dot.warn { background: var(--yellow); }
+    .api-dot.off  { background: var(--text-muted); }
+
+    /* ===================== EMPTY STATE ===================== */
+    .empty-state {
+      text-align: center;
+      padding: 52px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state h3 { color: var(--text); margin-bottom: 6px; font-size: 16px; }
+    .empty-state p  { font-size: 13px; }
+
+    /* ===================== MODAL ===================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.hidden { display: none; }
+
+    .modal-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 26px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header h2 {
+      font-size: 17px;
+      color: var(--accent-light);
+      font-weight: 700;
+    }
+
+    .modal-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .modal-section h3 {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .input-row input { flex: 1; min-width: 0; }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .hint code {
+      background: var(--bg3);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: var(--accent-dim);
+    }
+
+    .status-tag {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .status-tag.ok   { background: var(--green-dark); color: #6ee7b7; border: 1px solid var(--green); }
+    .status-tag.warn { background: #451a03; color: #fde68a; border: 1px solid var(--yellow); }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ===================== TOAST ===================== */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 13px;
+      z-index: 200;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.28s ease, opacity 0.28s ease;
+      max-width: 300px;
+      pointer-events: none;
+    }
+
+    #toast.show          { transform: translateY(0); opacity: 1; }
+    #toast.toast-error   { border-color: var(--red);   color: #fca5a5; }
+    #toast.toast-success { border-color: var(--green); color: #6ee7b7; }
+    #toast.toast-info    { border-color: var(--accent); color: var(--accent-light); }
+
+    /* ===================== SCROLLBAR ===================== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+  </style>
+</head>
+<body>
+
+<!-- ============================= HEADER ============================= -->
+<header>
+  <h1>Ludex <span>— HLTB Tracker</span></h1>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <button class="btn btn-sm" id="btnRefreshHeader" title="Actualizar notas de juegos sin puntuación">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Actualizar notas
+    </button>
+    <button class="btn" id="btnSettings">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      Configuración
+    </button>
+  </div>
+</header>
+
+<!-- ============================= MAIN ============================= -->
+<main>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+
+    <div class="card field">
+      <span class="field-label">Buscar juego</span>
+      <input id="gameInput" type="search" autocomplete="off" placeholder="Escribe un nombre...">
+      <div id="suggestions"></div>
+    </div>
+
+    <div class="card field">
+      <span class="field-label">Modo de duración</span>
+      <select id="modeSelect">
+        <option value="main">Historia principal</option>
+        <option value="extra" selected>Historia + Extras</option>
+        <option value="complete">Completionist</option>
+      </select>
+    </div>
+
+    <div class="card field">
+      <span class="field-label">Filtros</span>
+      <div class="filters">
+        <label class="filter-chip">
+          <input type="checkbox" id="showPending" checked>
+          <span class="filter-dot dot-pending"></span>
+          Pendientes
+        </label>
+        <label class="filter-chip">
+          <input type="checkbox" id="showCompleted" checked>
+          <span class="filter-dot dot-completed"></span>
+          Completados
+        </label>
+        <label class="filter-chip">
+          <input type="checkbox" id="showDropped" checked>
+          <span class="filter-dot dot-dropped"></span>
+          Abandonados
+        </label>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Sin base de datos -->
+    <div id="noDatabaseBanner">
+      <h2>Sin base de datos HLTB</h2>
+      <p>
+        Importa tu archivo <code>howlongtobeat_games.json</code> desde la<br>
+        configuración para empezar a buscar y añadir juegos.
+      </p>
+      <button class="btn btn-primary" id="btnOpenSettingsFromBanner">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Abrir Configuración
+      </button>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats" id="statsBar"></div>
+
+    <!-- Búsqueda en lista -->
+    <div class="card" id="listSearchCard" style="padding:10px 16px; display:none;">
+      <div class="list-search-wrap">
+        <span class="list-search-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </span>
+        <input id="listSearch" type="search" placeholder="Filtrar en mi lista..." autocomplete="off">
+      </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="card table-wrapper">
+      <table>
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="emptyState" class="empty-state" style="display:none;">
+        <h3>No hay juegos aquí</h3>
+        <p>Busca un juego en el panel izquierdo para añadirlo a tu lista.</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- ============================= MODAL CONFIGURACIÓN ============================= -->
+<div class="modal-backdrop hidden" id="modalSettings">
+  <div class="modal-box">
+
+    <div class="modal-header">
+      <h2 style="display:flex;align-items:center;gap:7px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Configuración
+      </h2>
+      <button class="btn btn-sm" id="btnCloseSettings">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cerrar
+      </button>
+    </div>
+
+    <!-- API KEY -->
+    <div class="modal-section">
+      <h3>API Key de RAWG</h3>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+        <span class="api-dot off" id="apiDot"></span>
+        <span id="apiStatusText" style="font-size:12px; color:var(--text-muted);">Sin configurar</span>
+      </div>
+      <div class="input-row">
+        <input id="apiKeyInput" type="password" placeholder="Pega aquí tu API key...">
+        <button class="btn btn-icon" id="btnToggleKey" title="Mostrar / ocultar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+        <button class="btn btn-icon" id="btnCopyKey" title="Copiar al portapapeles">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+        </button>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnSaveKey" style="width:fit-content;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        Guardar y verificar
+      </button>
+      <p class="hint">
+        Se guarda en tu navegador. Necesaria para obtener puntuaciones (Metacritic / RAWG).<br>
+        Obtén una gratis en <a href="https://rawg.io/apidocs" target="_blank" style="color:var(--accent-dim);">rawg.io/apidocs</a>.
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <!-- BASE DE DATOS HLTB -->
+    <div class="modal-section">
+      <h3>Base de datos HLTB</h3>
+      <p class="hint">
+        Acepta <code>.json</code> y <code>.csv</code>. Se guarda en el navegador; solo necesitas importarla una vez.<br>
+        Descarga la última versión semanal desde el repositorio de scraping:
+        <a href="https://github.com/julianxhokaxhiu/hltb-scraper/releases/latest" target="_blank" style="color:var(--accent-dim);">
+          julianxhokaxhiu/hltb-scraper → Releases
+        </a>
+      </p>
+      <input type="file" id="hltbFileInput" accept=".json,.csv">
+      <div id="hltbStatus" class="status-tag warn" style="display:inline-flex;align-items:center;gap:5px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Sin base de datos
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- PUNTUACIONES -->
+    <div class="modal-section">
+      <h3>Puntuaciones RAWG</h3>
+      <p class="hint">Actualiza las puntuaciones de los juegos sin nota (o que fallaron al añadirse).</p>
+      <button class="btn btn-sm" id="btnRefetchScores">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Actualizar puntuaciones
+      </button>
+      <p class="hint" id="refetchInfo"></p>
+    </div>
+
+    <hr class="divider">
+
+    <!-- EXPORTAR / IMPORTAR LISTA -->
+    <div class="modal-section">
+      <h3>Mis Juegos — Copia de Seguridad</h3>
+      <p class="hint">
+        Exporta tu lista para transferirla a otro ordenador, navegador o como copia de seguridad.
+        La importación te pedirá si quieres reemplazar o fusionar con tu lista actual.
+      </p>
+      <div class="btn-row">
+        <button class="btn" id="btnExport">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Exportar lista
+        </button>
+        <button class="btn" id="btnImport">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Importar lista
+        </button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;">
+      </div>
+      <p class="hint" id="exportInfo"></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================= TOAST ============================= -->
+<div id="toast"></div>
+
+<!-- ============================= SCRIPT ============================= -->
+<script>
+/* ================================================================
+   ESTADO GLOBAL
+   ================================================================ */
+
+const DB_NAME        = "hltb_tracker";
+const DB_VERSION     = 2;
+const STORE_HLTB     = "hltb_games";
+const STORE_SETTINGS = "settings";
+
+let db       = null;
+let hltbData = [];
+let games    = JSON.parse(localStorage.getItem("games") || "[]");
+let apiKey   = localStorage.getItem("rawg_api_key") || "";
+
+let sortKey    = "ratio";
+let sortDir    = "desc";
+let listFilter   = "";
+let acIndex      = -1;    // índice activo en el autocomplete
+let backupHandle = null;  // FileSystemFileHandle para backup automático
+let autoBackup   = localStorage.getItem("auto_backup") === "true";
+
+/* ================================================================
+   ICONOS SVG (Feather-style, stroke only)
+   ================================================================ */
+const ICO = {
+  refresh:   `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>`,
+  eye:       `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  eyeOff:    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`,
+  link:      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  clock:     `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  check:     `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  xmark:     `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  trash:     `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  warning:   `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  folder:    `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+  save:      `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>`,
+};
+
+/* ================================================================
+   INDEXEDDB  (almacena la base de datos HLTB sin límite de tamaño)
+   ================================================================ */
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains(STORE_HLTB)) {
+        d.createObjectStore(STORE_HLTB, { keyPath: "id" });
+      }
+      if (!d.objectStoreNames.contains(STORE_SETTINGS)) {
+        d.createObjectStore(STORE_SETTINGS, { keyPath: "id" });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise(resolve => {
+    const tx  = db.transaction(store, "readonly");
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => resolve(req.result ?? null);
+    req.onerror   = () => resolve(null);
+  });
+}
+
+function dbPut(store, value) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, "readwrite");
+    const req = tx.objectStore(store).put(value);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbDelete(store, key) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store, "readwrite");
+    const req = tx.objectStore(store).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+/* ================================================================
+   BACKUP AUTOMÁTICO — File System Access API
+   Almacena un FileSystemFileHandle en IndexedDB para poder
+   sobreescribir siempre el mismo archivo sin diálogos adicionales.
+   ================================================================ */
+
+async function loadBackupHandle() {
+  try {
+    const stored = await dbGet(STORE_SETTINGS, "backup_handle");
+    if (stored?.handle) {
+      backupHandle = stored.handle;
+    }
+  } catch (e) {
+    backupHandle = null;
+  }
+  updateBackupUI();
+}
+
+function updateBackupUI() {
+  const pathText   = document.getElementById("backupPathText");
+  const btnNow     = document.getElementById("btnBackupNow");
+  const btnClear   = document.getElementById("btnClearBackupPath");
+  const autoLabel  = document.getElementById("autoBackupLabel");
+  const autoToggle = document.getElementById("autoBackupToggle");
+  if (!pathText) return;
+
+  if (backupHandle) {
+    pathText.textContent = backupHandle.name;
+    pathText.style.color = "var(--text)";
+    if (btnNow)   btnNow.disabled         = false;
+    if (btnClear) btnClear.style.display  = "";
+    if (autoLabel) {
+      autoLabel.style.opacity       = "1";
+      autoLabel.style.pointerEvents = "auto";
+    }
+  } else {
+    pathText.textContent = "Sin ruta configurada";
+    pathText.style.color = "var(--text-muted)";
+    if (btnNow)   btnNow.disabled         = true;
+    if (btnClear) btnClear.style.display  = "none";
+    if (autoLabel) {
+      autoLabel.style.opacity       = "0.4";
+      autoLabel.style.pointerEvents = "none";
+    }
+  }
+  if (autoToggle) autoToggle.checked = autoBackup;
+}
+
+async function writeBackup(silent = false) {
+  if (!backupHandle) return;
+  try {
+    // Verificar permiso; sólo solicitarlo si el usuario hizo clic manualmente
+    let perm = "granted";
+    if (backupHandle.queryPermission) {
+      perm = await backupHandle.queryPermission({ mode: "readwrite" });
+      if (perm !== "granted" && !silent) {
+        perm = await backupHandle.requestPermission({ mode: "readwrite" });
+      }
+    }
+    if (perm !== "granted") {
+      if (!silent) showToast("Permiso denegado para escribir el backup", "error");
+      return;
+    }
+
+    const payload = {
+      version:  1,
+      exported: new Date().toISOString(),
+      count:    games.length,
+      games
+    };
+
+    const writable = await backupHandle.createWritable();
+    await writable.write(JSON.stringify(payload, null, 2));
+    await writable.close();
+
+    if (!silent) showToast(`✓ Backup guardado: ${backupHandle.name}`, "success");
+  } catch (e) {
+    console.error("[Backup]", e.message);
+    if (!silent) showToast("Error al guardar el backup: " + e.message, "error");
+  }
+}
+
+/* ================================================================
+   INICIO
+   ================================================================ */
+
+async function init() {
+  db = await openDB();
+
+  const stored = await dbGet(STORE_HLTB, "main");
+  if (stored?.data?.length) {
+    hltbData = stored.data;
+  }
+
+  if (apiKey) {
+    document.getElementById("apiKeyInput").value = apiKey;
+  }
+
+  updateHLTBStatus();
+  updateApiStatus();
+  renderStats();
+  render();
+
+  // Re-lanzar fetch de puntuaciones para juegos que quedaron con score:null
+  // (ocurre cuando el juego fue añadido y el fetch falló, o era la primera vez)
+  const needsScore = games.filter(g => g.score === null);
+  if (needsScore.length > 0 && apiKey) {
+    for (const g of needsScore) {
+      const { score, source } = await fetchScore(g.name);
+      const idx = games.findIndex(x => x.name === g.name);
+      if (idx >= 0) {
+        games[idx].score       = score;
+        games[idx].scoreSource = source;
+      }
+      await sleep(150); // evitar rate limit
+    }
+    save();
+    render();
+  }
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/* ================================================================
+   BASE DE DATOS HLTB — carga desde archivo (.json o .csv)
+   ================================================================ */
+
+function parseHLTBCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  // Parseo básico de líneas CSV (maneja comillas en campos)
+  function parseCSVLine(line) {
+    const fields = [];
+    let cur = "", inQuote = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuote && line[i + 1] === '"') { cur += '"'; i++; }
+        else { inQuote = !inQuote; }
+      } else if (ch === ',' && !inQuote) {
+        fields.push(cur.trim()); cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    fields.push(cur.trim());
+    return fields;
+  }
+
+  const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, "").toLowerCase());
+  const result  = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = parseCSVLine(lines[i]);
+    const obj  = {};
+    headers.forEach((h, idx) => { obj[h] = (vals[idx] ?? "").replace(/^"|"$/g, ""); });
+
+    const entry = {
+      steam_id:  parseInt(obj.steam_id)  || 0,
+      game_name: obj.game_name           || "",
+      comp_main: parseInt(obj.comp_main) || 0,
+      comp_plus: parseInt(obj.comp_plus) || 0,
+      comp_100:  parseInt(obj.comp_100)  || 0
+    };
+    if (entry.game_name) result.push(entry);
+  }
+  return result;
+}
+
+document.getElementById("hltbFileInput").addEventListener("change", async function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  showToast("Leyendo archivo...", "info");
+
+  try {
+    const text  = await file.text();
+    const isCSV = file.name.toLowerCase().endsWith(".csv");
+    let valid;
+
+    if (isCSV) {
+      valid = parseHLTBCSV(text);
+      if (!valid.length) throw new Error("No se encontraron juegos válidos en el CSV");
+    } else {
+      const raw = JSON.parse(text);
+      if (!Array.isArray(raw)) throw new Error("El archivo debe contener un array JSON");
+      valid = raw.filter(g =>
+        g &&
+        typeof g.game_name === "string" &&
+        typeof g.comp_main === "number"
+      );
+      if (!valid.length) throw new Error("No se encontraron juegos válidos en el JSON");
+    }
+
+    await dbPut(STORE_HLTB, { id: "main", data: valid });
+    hltbData = valid;
+
+    updateHLTBStatus();
+    showToast(`✓ ${valid.length.toLocaleString()} juegos cargados`, "success");
+  } catch (e) {
+    showToast("Error: " + e.message, "error");
+  }
+
+  this.value = "";
+});
+
+function updateHLTBStatus() {
+  const tag    = document.getElementById("hltbStatus");
+  const banner = document.getElementById("noDatabaseBanner");
+
+  if (hltbData.length > 0) {
+    tag.innerHTML = `${ICO.check} ${hltbData.length.toLocaleString()} juegos disponibles`;
+    tag.className = "status-tag ok";
+    tag.style.display = "inline-flex";
+    tag.style.alignItems = "center";
+    tag.style.gap = "5px";
+    banner.style.display = "none";
+  } else {
+    tag.innerHTML = `${ICO.warning} Sin base de datos`;
+    tag.className = "status-tag warn";
+    tag.style.display = "inline-flex";
+    tag.style.alignItems = "center";
+    tag.style.gap = "5px";
+    banner.style.display = "block";
+  }
+}
+
+/* ================================================================
+   API KEY + STATUS
+   ================================================================ */
+
+function updateApiStatus() {
+  const dot  = document.getElementById("apiDot");
+  const text = document.getElementById("apiStatusText");
+  if (!dot || !text) return;
+  if (apiKey) {
+    dot.className   = "api-dot ok";
+    text.textContent = "API key configurada";
+    text.style.color = "var(--green)";
+  } else {
+    dot.className   = "api-dot off";
+    text.textContent = "Sin configurar";
+    text.style.color = "var(--text-muted)";
+  }
+}
+
+// "Guardar y verificar": guarda la key ANTES de probar para que todo lo demás
+// también la tenga disponible inmediatamente (evita el bug de restaurar a vacío)
+document.getElementById("btnSaveKey").addEventListener("click", async () => {
+  const val = document.getElementById("apiKeyInput").value.trim();
+  if (!val) { showToast("Introduce una API key primero", "error"); return; }
+
+  // Guardar siempre, independientemente del resultado del test
+  apiKey = val;
+  localStorage.setItem("rawg_api_key", apiKey);
+  updateApiStatus();
+
+  const btn = document.getElementById("btnSaveKey");
+  btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Verificando…`;
+  btn.disabled  = true;
+
+  const { score, source } = await fetchScore("Hollow Knight");
+
+  btn.innerHTML = `${ICO.link} Guardar y verificar`;
+  btn.disabled  = false;
+
+  const dot  = document.getElementById("apiDot");
+  const text = document.getElementById("apiStatusText");
+
+  if (score > 0) {
+    dot.className    = "api-dot ok";
+    text.textContent = "Verificada ✓";
+    text.style.color = "var(--green)";
+    showToast(`✓ API guardada — Hollow Knight: ${score} (${source})`, "success");
+  } else if (score === -1) {
+    dot.className    = "api-dot warn";
+    text.textContent = "Error de conexión";
+    text.style.color = "var(--yellow)";
+    showToast("Key guardada pero la conexión falló — ¿clave incorrecta?", "error");
+  } else {
+    dot.className    = "api-dot ok";
+    text.textContent = "Guardada (sin resultado de prueba)";
+    text.style.color = "var(--text-muted)";
+    showToast("✓ API key guardada", "success");
+  }
+});
+
+document.getElementById("btnToggleKey").addEventListener("click", () => {
+  const inp  = document.getElementById("apiKeyInput");
+  const btn  = document.getElementById("btnToggleKey");
+  const show = inp.type === "password";
+  inp.type     = show ? "text" : "password";
+  btn.innerHTML = show ? ICO.eyeOff : ICO.eye;
+});
+
+document.getElementById("btnCopyKey").addEventListener("click", () => {
+  const val = document.getElementById("apiKeyInput").value;
+  if (!val) { showToast("No hay API key para copiar", "error"); return; }
+  navigator.clipboard.writeText(val)
+    .then(() => showToast("✓ API key copiada al portapapeles", "success"))
+    .catch(() => showToast("No se pudo acceder al portapapeles", "error"));
+});
+
+/* ================================================================
+   EXPORTAR / IMPORTAR LISTA DE JUEGOS
+   ================================================================ */
+
+document.getElementById("btnExport").addEventListener("click", () => {
+  if (!games.length) { showToast("No hay juegos para exportar", "error"); return; }
+
+  const payload = {
+    version:  1,
+    exported: new Date().toISOString(),
+    count:    games.length,
+    games
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `queJuego_backup_${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast(`✓ ${games.length} juegos exportados`, "success");
+});
+
+document.getElementById("btnImport").addEventListener("click", () => {
+  document.getElementById("importFileInput").click();
+});
+
+document.getElementById("importFileInput").addEventListener("change", async function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    let imported;
+    if (Array.isArray(data))         imported = data;
+    else if (Array.isArray(data.games)) imported = data.games;
+    else throw new Error("Formato no reconocido. Se espera un array o un objeto con campo 'games'.");
+
+    const valid = imported.filter(g => g && typeof g.name === "string" && g.durations);
+    if (!valid.length) throw new Error("No se encontraron juegos válidos en el archivo");
+
+    const replace = confirm(
+      `Archivo con ${valid.length} juego(s) encontrado.\n\n` +
+      "¿Cómo quieres importarlos?\n\n" +
+      "  OK      → Reemplazar toda tu lista actual\n" +
+      "  Cancelar → Fusionar (mantener los que ya tienes)"
+    );
+
+    if (replace) {
+      games = valid;
+      showToast(`✓ ${valid.length} juegos importados (lista reemplazada)`, "success");
+    } else {
+      const existing = new Set(games.map(g => g.name));
+      const newOnes  = valid.filter(g => !existing.has(g.name));
+      games = [...games, ...newOnes];
+      showToast(`✓ ${newOnes.length} juegos nuevos fusionados`, "success");
+    }
+
+    save();
+    renderStats();
+    render();
+  } catch (e) {
+    showToast("Error: " + e.message, "error");
+  }
+
+  this.value = "";
+});
+
+/* ================================================================
+   MODAL CONFIGURACIÓN
+   ================================================================ */
+
+function openSettings() {
+  document.getElementById("modalSettings").classList.remove("hidden");
+  const n = games.length;
+  document.getElementById("exportInfo").textContent =
+    n ? `Tu lista tiene actualmente ${n} juego(s).` : "Tu lista está vacía.";
+}
+
+function closeSettings() {
+  document.getElementById("modalSettings").classList.add("hidden");
+}
+
+document.getElementById("btnSettings").addEventListener("click", openSettings);
+document.getElementById("btnCloseSettings").addEventListener("click", closeSettings);
+document.getElementById("btnOpenSettingsFromBanner").addEventListener("click", openSettings);
+
+document.getElementById("modalSettings").addEventListener("click", function (e) {
+  if (e.target === this) closeSettings();
+});
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeSettings();
+});
+
+/* ================================================================
+   AUTOCOMPLETE
+   ================================================================ */
+
+const input       = document.getElementById("gameInput");
+const suggestions = document.getElementById("suggestions");
+
+input.addEventListener("input", function () {
+  const q = this.value.trim().toLowerCase();
+  suggestions.innerHTML = "";
+  acIndex = -1;
+  if (q.length < 2 || !hltbData.length) return;
+
+  const matches = hltbData
+    .filter(g => g.game_name.toLowerCase().includes(q))
+    .slice(0, 14);
+
+  matches.forEach(g => {
+    const div       = document.createElement("div");
+    div.className   = "suggestion";
+    div.textContent = g.game_name;
+    div.addEventListener("mousedown", e => {
+      e.preventDefault();
+      addGame(g);
+      input.value           = "";
+      suggestions.innerHTML = "";
+      acIndex = -1;
+    });
+    suggestions.appendChild(div);
+  });
+});
+
+input.addEventListener("keydown", e => {
+  const items = suggestions.querySelectorAll(".suggestion");
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    acIndex = Math.min(acIndex + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle("active", i === acIndex));
+    if (items[acIndex]) items[acIndex].scrollIntoView({ block: "nearest" });
+    return;
+  }
+
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    acIndex = Math.max(acIndex - 1, -1);
+    items.forEach((el, i) => el.classList.toggle("active", i === acIndex));
+    if (acIndex >= 0 && items[acIndex]) items[acIndex].scrollIntoView({ block: "nearest" });
+    return;
+  }
+
+  if (e.key === "Escape") {
+    suggestions.innerHTML = "";
+    input.value = "";
+    acIndex = -1;
+    return;
+  }
+
+  if (e.key === "Enter") {
+    e.preventDefault();
+    if (acIndex >= 0 && items[acIndex]) {
+      // Seleccionar el elemento resaltado con teclado
+      items[acIndex].dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    } else if (items.length > 0) {
+      // Si hay resultados pero ninguno seleccionado, añadir el primero
+      items[0].dispatchEvent(new MouseEvent("mousedown", { bubbles: true }));
+    } else {
+      // Fallback: búsqueda exacta
+      const q     = input.value.trim().toLowerCase();
+      const match = hltbData.find(g => g.game_name.toLowerCase() === q);
+      if (match) {
+        addGame(match);
+        input.value           = "";
+        suggestions.innerHTML = "";
+        acIndex = -1;
+      }
+    }
+  }
+});
+
+document.addEventListener("click", e => {
+  if (!e.target.closest("#gameInput") && !e.target.closest("#suggestions")) {
+    suggestions.innerHTML = "";
+    acIndex = -1;
+  }
+});
+
+/* ================================================================
+   RAWG API — obtener puntuación
+   Retorna { score, source }
+     score: null         → no se intentó (sin key)
+             -1          → error de red / CORS / clave inválida
+              0          → juego no encontrado
+              N (>0)     → puntuación real
+   source: 'metacritic' | 'rawg_community' | 'not_found' | 'no_key' | 'error'
+   ================================================================ */
+
+/* Chrome bloquea fetch a APIs externas cuando la página se abre desde file://.
+   Si la petición directa falla, se reintenta automáticamente a través de un
+   proxy CORS público (corsproxy.io). El proxy solo lee la URL pública de RAWG
+   y no almacena datos. La API key viaja en la URL igual que en la petición directa. */
+
+async function rawgFetch(rawgUrl) {
+  // 1er intento: petición directa (funciona desde localhost o HTTPS)
+  try {
+    const res = await fetch(rawgUrl);
+    if (res.ok) return res;
+  } catch { /* ignorar — probablemente CORS desde file:// */ }
+
+  // 2º intento: a través de proxy CORS (fallback para file://)
+  const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(rawgUrl)}`;
+  const res = await fetch(proxyUrl);
+  return res;
+}
+
+async function fetchScore(name) {
+  if (!apiKey) return { score: null, source: "no_key" };
+
+  try {
+    const rawgUrl = `https://api.rawg.io/api/games?search=${encodeURIComponent(name)}&page_size=5&key=${encodeURIComponent(apiKey)}`;
+    const res = await rawgFetch(rawgUrl);
+
+    if (res.status === 401 || res.status === 403) {
+      console.warn("[RAWG] Clave inválida o sin permisos:", res.status);
+      return { score: -1, source: "error" };
+    }
+    if (!res.ok) {
+      console.warn("[RAWG] HTTP error:", res.status);
+      return { score: -1, source: "error" };
+    }
+
+    const data = await res.json();
+    if (!data.results?.length) return { score: 0, source: "not_found" };
+
+    // Priorizar coincidencia exacta de nombre
+    const nameLower = name.toLowerCase();
+    const best = data.results.find(
+      r => r.name?.toLowerCase() === nameLower
+    ) ?? data.results[0];
+
+    if (best.metacritic) {
+      return { score: Math.min(100, Math.max(0, best.metacritic)), source: "metacritic" };
+    }
+    if (best.rating > 0) {
+      return { score: Math.min(100, Math.max(0, Math.round(best.rating * 20))), source: "rawg_community" };
+    }
+    return { score: 0, source: "not_found" };
+
+  } catch (err) {
+    console.error("[RAWG] fetch error (directo y proxy):", err.message);
+    return { score: -1, source: "error" };
+  }
+}
+
+/* ================================================================
+   ACTUALIZAR PUNTUACIONES (botón en configuración)
+   ================================================================ */
+
+async function runRefetchScores() {
+  if (!apiKey) { showToast("Configura la API key en ⚙ Configuración primero", "error"); return; }
+
+  // null = nunca intentado  |  -1 = falló  |  0 = no encontrado (reintentar)
+  const toFetch = games.filter(g => g.score === null || g.score === -1 || g.score === 0);
+  if (!toFetch.length) {
+    showToast("✓ Todas las puntuaciones ya están cargadas", "info");
+    return;
+  }
+
+  // Bloquear ambos botones mientras trabaja
+  const btnModal  = document.getElementById("btnRefetchScores");
+  const btnHeader = document.getElementById("btnRefreshHeader");
+  const info      = document.getElementById("refetchInfo");
+  [btnModal, btnHeader].forEach(b => { if (b) b.disabled = true; });
+  if (btnHeader) btnHeader.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Actualizando…`;
+  if (info)      info.textContent    = `Actualizando ${toFetch.length} juego(s)…`;
+
+  let updated = 0;
+  for (const g of toFetch) {
+    const { score, source } = await fetchScore(g.name);
+    const idx = games.findIndex(x => x.name === g.name);
+    if (idx >= 0) {
+      games[idx].score       = score;
+      games[idx].scoreSource = source;
+      if (score > 0) updated++;
+    }
+    // Actualizar tabla en tiempo real tras cada juego
+    save();
+    render();
+    await sleep(450); // margen suficiente para el proxy CORS
+  }
+
+  [btnModal, btnHeader].forEach(b => { if (b) b.disabled = false; });
+  if (btnHeader) btnHeader.innerHTML = `${ICO.refresh} Actualizar notas`;
+  if (info)      info.textContent   = `Completado: ${updated} de ${toFetch.length} con puntuación.`;
+  showToast(`✓ ${updated} de ${toFetch.length} puntuaciones actualizadas`, "success");
+}
+
+document.getElementById("btnRefetchScores").addEventListener("click", runRefetchScores);
+document.getElementById("btnRefreshHeader").addEventListener("click", runRefetchScores);
+
+/* ================================================================
+   CRUD DE JUEGOS
+   ================================================================ */
+
+async function addGame(game) {
+  if (games.some(g => g.name === game.game_name)) {
+    showToast("Este juego ya está en tu lista", "error");
+    return;
+  }
+
+  // comp_plus en HLTB ya ES "Historia + Extras" (no es un añadido a comp_main)
+  games.push({
+    name:        game.game_name,
+    score:       null,   // null = pendiente de fetch
+    scoreSource: null,
+    durations: {
+      main:     game.comp_main / 3600,
+      extra:    game.comp_plus / 3600,
+      complete: game.comp_100  / 3600
+    },
+    status:  "pending",
+    addedAt: new Date().toISOString()
+  });
+
+  save();
+  renderStats();
+  render();
+
+  // Puntación en segundo plano
+  const { score, source } = await fetchScore(game.game_name);
+  const idx = games.findIndex(g => g.name === game.game_name);
+  if (idx >= 0) {
+    games[idx].score       = score;
+    games[idx].scoreSource = source;
+    save();
+    renderStats();
+    render();
+  }
+}
+
+function setStatus(name, status) {
+  const g = games.find(g => g.name === name);
+  if (!g) return;
+  g.status = status;
+  save();
+  renderStats();
+  render();
+}
+
+function deleteGame(name) {
+  const idx = games.findIndex(g => g.name === name);
+  if (idx < 0) return;
+  games.splice(idx, 1);
+  save();
+  renderStats();
+  render();
+}
+
+function save() {
+  localStorage.setItem("games", JSON.stringify(games));
+}
+
+/* ================================================================
+   ESTADÍSTICAS
+   ================================================================ */
+
+function renderStats() {
+  const total     = games.length;
+  const pending   = games.filter(g => g.status === "pending").length;
+  const completed = games.filter(g => g.status === "completed").length;
+  const dropped   = games.filter(g => g.status === "dropped").length;
+  const mode      = document.getElementById("modeSelect").value;
+
+  const pendingHours = games
+    .filter(g => g.status === "pending")
+    .reduce((sum, g) => sum + (g.durations?.[mode] || 0), 0);
+
+  document.getElementById("statsBar").innerHTML = `
+    <div class="stat">
+      <div class="stat-value">${total}</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${pending}</div>
+      <div class="stat-label">Pendientes</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" style="color:var(--green)">${completed}</div>
+      <div class="stat-label">Completados</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" style="color:var(--red)">${dropped}</div>
+      <div class="stat-label">Abandonados</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">${pendingHours.toFixed(0)}h</div>
+      <div class="stat-label">Horas en cola</div>
+    </div>
+  `;
+}
+
+/* ================================================================
+   RENDERIZADO DE TABLA
+   ================================================================ */
+
+function getFiltered() {
+  const mode          = document.getElementById("modeSelect").value;
+  const showPending   = document.getElementById("showPending").checked;
+  const showCompleted = document.getElementById("showCompleted").checked;
+  const showDropped   = document.getElementById("showDropped").checked;
+
+  const lf = listFilter.trim().toLowerCase();
+
+  return games
+    .filter(g => {
+      if (g.status === "pending"   && !showPending)                    return false;
+      if (g.status === "completed" && !showCompleted)                  return false;
+      if (g.status === "dropped"   && !showDropped)                    return false;
+      if (lf && !g.name.toLowerCase().includes(lf))                    return false;
+      return true;
+    })
+    .map(g => {
+      const hours  = g.durations?.[mode] || 0;
+      const score  = g.score ?? 0;
+      const ratio  = hours > 0 && score > 0 ? score / hours : null;
+      return { ...g, _hours: hours, _score: score, _ratio: ratio };
+    })
+    .sort((a, b) => {
+      const mul = sortDir === "desc" ? -1 : 1;
+      if (sortKey === "name") {
+        return mul * a.name.localeCompare(b.name, "es", { sensitivity: "base" });
+      }
+      if (sortKey === "hours") {
+        if (!a._hours && !b._hours) return 0;
+        if (!a._hours) return 1;
+        if (!b._hours) return -1;
+        return mul * (a._hours - b._hours);
+      }
+      if (sortKey === "score") {
+        return mul * (a._score - b._score);
+      }
+      if (sortKey === "ratio") {
+        if (a._ratio === null && b._ratio === null) return 0;
+        if (a._ratio === null) return 1;
+        if (b._ratio === null) return -1;
+        return mul * (a._ratio - b._ratio);
+      }
+      return 0;
+    });
+}
+
+function render() {
+  const filtered = getFiltered();
+
+  // Mostrar/ocultar barra de búsqueda según si hay juegos
+  const searchCard = document.getElementById("listSearchCard");
+  if (searchCard) searchCard.style.display = games.length ? "block" : "none";
+
+  /* Cabecera con columnas ordenables */
+  const colSort = key =>
+    `sortable${sortKey === key ? " sort-" + sortDir : ""}`;
+
+  document.getElementById("tableHead").innerHTML = `
+    <tr>
+      <th>Estado</th>
+      <th class="${colSort("name")}"  data-key="name">Juego</th>
+      <th class="${colSort("hours")}" data-key="hours">Horas</th>
+      <th class="${colSort("score")}" data-key="score">Nota</th>
+      <th class="${colSort("ratio")}" data-key="ratio">Score / h</th>
+      <th></th>
+    </tr>
+  `;
+
+  /* Listener de ordenación en cabecera */
+  document.querySelectorAll("#tableHead .sortable").forEach(th => {
+    th.addEventListener("click", () => {
+      const key = th.dataset.key;
+      if (sortKey === key) {
+        sortDir = sortDir === "desc" ? "asc" : "desc";
+      } else {
+        sortKey = key;
+        sortDir = "desc";
+      }
+      render();
+    });
+  });
+
+  const body  = document.getElementById("tableBody");
+  const empty = document.getElementById("emptyState");
+
+  if (!filtered.length) {
+    body.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+
+  empty.style.display = "none";
+
+  body.innerHTML = filtered.map(g => {
+    const rowClass =
+      g.status === "completed" ? "row-completed" :
+      g.status === "dropped"   ? "row-dropped"   : "";
+
+    const hoursStr = g._hours ? g._hours.toFixed(1) + "h" : "—";
+
+    let scoreStr;
+    if (g.score === null) {
+      // Nunca se intentó o está en curso
+      scoreStr = apiKey
+        ? `<span class="spinner" title="Obteniendo puntuación…"></span>`
+        : `<span class="score-nokey" title="Configura una API key en ⚙ Configuración">?</span>`;
+    } else if (g._score === -1) {
+      // Error de red / CORS / clave inválida
+      scoreStr = `<span class="score-err" title="Error al obtener puntuación — usa Actualizar notas">${ICO.warning}</span>`;
+    } else if (g._score === 0) {
+      // No encontrado en RAWG
+      scoreStr = `<span style="color:var(--text-muted)" title="No encontrado en RAWG">—</span>`;
+    } else {
+      // Puntuación real
+      const badgeClass  = g.scoreSource === "metacritic" ? "score-mc" : "score-rawg";
+      const badgeLabel  = g.scoreSource === "metacritic" ? "MC" : "RW";
+      const badgeTitle  = g.scoreSource === "metacritic"
+        ? "Puntuación de Metacritic"
+        : "Puntuación RAWG (comunidad × 20)";
+      scoreStr = `<span class="score-badge">
+        ${g._score}
+        <span class="score-source ${badgeClass}" title="${badgeTitle}">${badgeLabel}</span>
+      </span>`;
+    }
+
+    const ratioStr = g._ratio !== null ? g._ratio.toFixed(2) : "—";
+    const ratioClass =
+      g._ratio === null ? "" :
+      g._ratio > 5      ? "ratio-high" :
+      g._ratio > 2      ? "ratio-mid"  : "ratio-low";
+
+    /* Escapar el nombre para atributos y texto */
+    const nameEsc  = encodeURIComponent(g.name);
+    const nameHtml = g.name
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    return `
+      <tr class="${rowClass}">
+        <td>
+          <div class="status-btns">
+            <button class="status-btn ${g.status === "pending"   ? "active-pending"   : ""}"
+                    data-action="status" data-status="pending" data-name="${nameEsc}"
+                    title="Pendiente">${ICO.clock}</button>
+            <button class="status-btn ${g.status === "completed" ? "active-completed" : ""}"
+                    data-action="status" data-status="completed" data-name="${nameEsc}"
+                    title="Completado">${ICO.check}</button>
+            <button class="status-btn ${g.status === "dropped"   ? "active-dropped"   : ""}"
+                    data-action="status" data-status="dropped" data-name="${nameEsc}"
+                    title="Abandonado">${ICO.xmark}</button>
+          </div>
+        </td>
+        <td class="game-name">${nameHtml}</td>
+        <td class="game-hours">${hoursStr}</td>
+        <td>${scoreStr}</td>
+        <td class="${ratioClass}">${ratioStr}</td>
+        <td>
+          <button class="btn btn-sm btn-danger"
+                  data-action="delete" data-name="${nameEsc}"
+                  title="Eliminar juego">${ICO.trash}</button>
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+/* Delegación de eventos en la tabla (evita onclick inline) */
+document.getElementById("tableBody").addEventListener("click", e => {
+  const btn = e.target.closest("[data-action]");
+  if (!btn) return;
+
+  const name   = decodeURIComponent(btn.dataset.name);
+  const action = btn.dataset.action;
+
+  if (action === "status") {
+    setStatus(name, btn.dataset.status);
+  } else if (action === "delete") {
+    deleteGame(name);
+  }
+});
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+
+let toastTimer;
+
+function showToast(msg, type = "") {
+  const el       = document.getElementById("toast");
+  el.textContent = msg;
+  el.className   = `show${type ? " toast-" + type : ""}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ""; }, 3200);
+}
+
+/* ================================================================
+   LISTENERS GENERALES
+   ================================================================ */
+
+document.getElementById("modeSelect").addEventListener("change", () => {
+  renderStats();
+  render();
+});
+
+document.getElementById("showPending").addEventListener("change", render);
+document.getElementById("showCompleted").addEventListener("change", render);
+document.getElementById("showDropped").addEventListener("change", render);
+
+document.getElementById("listSearch").addEventListener("input", function () {
+  listFilter = this.value;
+  render();
+});
+
+/* ================================================================
+   ARRANQUE
+   ================================================================ */
+
+init();
+</script>
+
+</body>
+</html>
