@@ -249,16 +249,85 @@
       flex-shrink: 0;
     }
 
-    .filter-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
+    .filter-icon {
+      flex-shrink: 0;
+      display: block;
+    }
+
+    .icon-pending   { color: var(--accent-light); }
+    .icon-completed { color: var(--green); }
+    .icon-dropped   { color: var(--red); }
+
+    /* ===================== TOGGLE SWITCH ===================== */
+    .toggle-label {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
       flex-shrink: 0;
     }
 
-    .dot-pending   { background: var(--accent-light); }
-    .dot-completed { background: var(--green); }
-    .dot-dropped   { background: var(--red); }
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      cursor: pointer;
+      z-index: 1;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+    .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
+
+    /* ===================== BACKUP PATH ROW ===================== */
+    .backup-path-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      min-width: 0;
+    }
+
+    #backupPathText {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     /* ===================== LIST SEARCH BAR ===================== */
     .list-search-wrap {
@@ -685,17 +754,17 @@
       <div class="filters">
         <label class="filter-chip">
           <input type="checkbox" id="showPending" checked>
-          <span class="filter-dot dot-pending"></span>
+          <svg class="filter-icon icon-pending" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           Pendientes
         </label>
         <label class="filter-chip">
           <input type="checkbox" id="showCompleted" checked>
-          <span class="filter-dot dot-completed"></span>
+          <svg class="filter-icon icon-completed" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           Completados
         </label>
         <label class="filter-chip">
           <input type="checkbox" id="showDropped" checked>
-          <span class="filter-dot dot-dropped"></span>
+          <svg class="filter-icon icon-dropped" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           Abandonados
         </label>
       </div>
@@ -841,6 +910,43 @@
         <input type="file" id="importFileInput" accept=".json" style="display:none;">
       </div>
       <p class="hint" id="exportInfo"></p>
+    </div>
+
+    <hr class="divider">
+
+    <!-- BACKUP AUTOMÁTICO -->
+    <div class="modal-section">
+      <h3>Backup Automático</h3>
+      <p class="hint">
+        Elige un archivo donde se guardará el backup automáticamente. Cada vez que guardes, se
+        <strong style="color:var(--text);">sobreescribirá</strong> el mismo archivo sin acumular copias.
+        Requiere Chrome o Edge (File System Access API).
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-sm" id="btnPickBackup">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          Elegir ruta de backup
+        </button>
+        <button class="btn btn-sm" id="btnBackupNow" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar ahora
+        </button>
+        <button class="btn btn-sm btn-danger" id="btnClearBackupPath" style="display:none;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Limpiar ruta
+        </button>
+      </div>
+      <div class="backup-path-row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span id="backupPathText">Sin ruta configurada</span>
+      </div>
+      <label id="autoBackupLabel" class="toggle-label" style="opacity:0.4;pointer-events:none;">
+        <span class="toggle-switch">
+          <input type="checkbox" id="autoBackupToggle">
+          <span class="toggle-slider"></span>
+        </span>
+        Backup automático al guardar cambios
+      </label>
     </div>
 
   </div>
@@ -1034,6 +1140,8 @@ async function init() {
   if (apiKey) {
     document.getElementById("apiKeyInput").value = apiKey;
   }
+
+  await loadBackupHandle();
 
   updateHLTBStatus();
   updateApiStatus();
@@ -1311,6 +1419,45 @@ document.getElementById("importFileInput").addEventListener("change", async func
   }
 
   this.value = "";
+});
+
+/* ================================================================
+   BACKUP AUTOMÁTICO — event listeners
+   ================================================================ */
+
+document.getElementById("btnPickBackup").addEventListener("click", async () => {
+  if (!window.showSaveFilePicker) {
+    showToast("Tu navegador no soporta esta función. Usa Chrome o Edge.", "error");
+    return;
+  }
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "ludex_backup.json",
+      types: [{ description: "JSON backup", accept: { "application/json": [".json"] } }]
+    });
+    backupHandle = handle;
+    await dbPut(STORE_SETTINGS, { id: "backup_handle", handle });
+    updateBackupUI();
+    showToast(`✓ Ruta configurada: ${handle.name}`, "success");
+  } catch (e) {
+    if (e.name !== "AbortError") showToast("Error al seleccionar archivo: " + e.message, "error");
+  }
+});
+
+document.getElementById("btnBackupNow").addEventListener("click", () => writeBackup(false));
+
+document.getElementById("btnClearBackupPath").addEventListener("click", async () => {
+  backupHandle = null;
+  autoBackup = false;
+  localStorage.setItem("auto_backup", "false");
+  await dbDelete(STORE_SETTINGS, "backup_handle");
+  updateBackupUI();
+  showToast("Ruta de backup eliminada", "info");
+});
+
+document.getElementById("autoBackupToggle").addEventListener("change", function () {
+  autoBackup = this.checked;
+  localStorage.setItem("auto_backup", String(autoBackup));
 });
 
 /* ================================================================
@@ -1600,6 +1747,7 @@ function deleteGame(name) {
 
 function save() {
   localStorage.setItem("games", JSON.stringify(games));
+  if (autoBackup && backupHandle) writeBackup(true);
 }
 
 /* ================================================================
