@@ -1906,7 +1906,7 @@ function getFiltered() {
     .map(g => {
       const hours  = g.durations?.[mode] || 0;
       const score  = g.score ?? 0;
-      const ratio  = hours > 0 && score > 0 ? score / hours : null;
+      const ratio  = hours > 0 && score > 0 ? Math.min(100, Math.round(score / hours * 10)) : null;
       return { ...g, _hours: hours, _score: score, _ratio: ratio };
     })
     .sort((a, b) => {
@@ -1950,7 +1950,7 @@ function render() {
       <th class="${colSort("name")}"  data-key="name">Juego</th>
       <th class="${colSort("hours")}" data-key="hours">Horas</th>
       <th class="${colSort("score")}" data-key="score">Nota</th>
-      <th class="${colSort("ratio")}" data-key="ratio">Score / h</th>
+      <th class="${colSort("ratio")}" data-key="ratio" title="Valor 0–100: nota por hora normalizada. Referencia: un juego de 10 h con nota perfecta = 100.">Valor</th>
       <th></th>
     </tr>
   `;
@@ -2012,11 +2012,11 @@ function render() {
       </span>`;
     }
 
-    const ratioStr = g._ratio !== null ? g._ratio.toFixed(2) : "—";
+    const ratioStr = g._ratio !== null ? String(g._ratio) : "—";
     const ratioClass =
       g._ratio === null ? "" :
-      g._ratio > 5      ? "ratio-high" :
-      g._ratio > 2      ? "ratio-mid"  : "ratio-low";
+      g._ratio >= 65    ? "ratio-high" :
+      g._ratio >= 35    ? "ratio-mid"  : "ratio-low";
 
     /* Escapar el nombre para atributos y texto */
     const nameEsc  = encodeURIComponent(g.name);
