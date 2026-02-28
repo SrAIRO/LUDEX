@@ -863,17 +863,28 @@
     <div class="modal-section">
       <h3>Base de datos HLTB</h3>
       <p class="hint">
-        Acepta <code>.json</code> y <code>.csv</code>. Se guarda en el navegador; solo necesitas importarla una vez.<br>
-        Descarga la última versión semanal desde el repositorio de scraping:
-        <a href="https://github.com/julianxhokaxhiu/hltb-scraper/releases/latest" target="_blank" style="color:var(--accent-dim);">
-          julianxhokaxhiu/hltb-scraper → Releases
-        </a>
+        Se descarga automáticamente desde
+        <a href="https://github.com/julianxhokaxhiu/hltb-scraper/releases/latest" target="_blank" style="color:var(--accent-dim);">julianxhokaxhiu/hltb-scraper</a>
+        al abrir la app (máx. cada 6 h). Si falla, se mantiene la copia anterior y se reintenta en 1 h.
       </p>
-      <input type="file" id="hltbFileInput" accept=".json,.csv">
-      <div id="hltbStatus" class="status-tag warn" style="display:inline-flex;align-items:center;gap:5px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Sin base de datos
+      <div class="btn-row">
+        <button class="btn btn-sm btn-primary" id="btnUpdateHLTBDB">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          Actualizar ahora
+        </button>
+        <div id="hltbStatus" class="status-tag warn" style="display:inline-flex;align-items:center;gap:5px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Sin base de datos
+        </div>
       </div>
+      <p class="hint" id="hltbUpdateInfo"></p>
+      <details style="margin-top:4px;">
+        <summary class="hint" style="cursor:pointer;color:var(--accent-dim);user-select:none;">Importar manualmente (respaldo)</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          <p class="hint">Acepta <code>.json</code> y <code>.csv</code>. Solo necesitas hacerlo si la descarga automática no funciona.</p>
+          <input type="file" id="hltbFileInput" accept=".json,.csv">
+        </div>
+      </details>
     </div>
 
     <hr class="divider">
@@ -1095,6 +1106,134 @@ async function downloadBackup() {
 }
 
 /* ================================================================
+   ACTUALIZACIÓN AUTOMÁTICA — Base de datos HLTB
+   Comprueba la última release de julianxhokaxhiu/hltb-scraper en
+   GitHub y descarga el CSV/JSON si hay versión nueva. En caso de
+   fallo mantiene la copia anterior y reintenta en 1 h. Sin fallo,
+   no vuelve a comprobar hasta pasadas 6 h.
+   ================================================================ */
+
+const HLTB_REPO          = "julianxhokaxhiu/hltb-scraper";
+const HLTB_CHECK_OK_MS   = 6 * 3600 * 1000;   // 6 h entre comprobaciones normales
+const HLTB_CHECK_FAIL_MS = 1 * 3600 * 1000;   // 1 h tras un fallo
+
+async function autoUpdateHLTB(force = false) {
+  const meta = await dbGet(STORE_SETTINGS, "hltb_update_meta");
+  const now  = Date.now();
+
+  if (!force) {
+    if (meta?.lastFailed && now - new Date(meta.lastFailed).getTime() < HLTB_CHECK_FAIL_MS) return;
+    if (meta?.lastChecked && now - new Date(meta.lastChecked).getTime() < HLTB_CHECK_OK_MS)  return;
+  }
+
+  const btn = document.getElementById("btnUpdateHLTBDB");
+  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Comprobando…`; }
+
+  try {
+    // 1. Consultar última release en GitHub
+    const apiRes = await fetch(`https://api.github.com/repos/${HLTB_REPO}/releases/latest`);
+    if (!apiRes.ok) throw new Error(`GitHub API: ${apiRes.status}`);
+    const release = await apiRes.json();
+
+    const newMeta = {
+      id:          "hltb_update_meta",
+      lastChecked: new Date().toISOString(),
+      releaseTag:  release.tag_name,
+      releaseDate: release.published_at,
+      lastFailed:  null,
+      failCount:   0,
+      lastUpdated: meta?.lastUpdated ?? null
+    };
+
+    // 2. Si ya tenemos esta versión, no descargar
+    if (!force && meta?.releaseTag === release.tag_name) {
+      await dbPut(STORE_SETTINGS, newMeta);
+      updateHLTBUpdateInfo();
+      return;
+    }
+
+    // 3. Encontrar asset CSV o JSON
+    const asset = release.assets?.find(a => a.name.endsWith(".csv") || a.name.endsWith(".json"));
+    if (!asset) throw new Error("No se encontró archivo CSV/JSON en la release");
+
+    if (btn) btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Descargando…`;
+
+    // 4. Descargar con fallback al proxy CORS
+    let fileRes = null;
+    try {
+      fileRes = await fetch(asset.browser_download_url);
+      if (!fileRes.ok) fileRes = null;
+    } catch (_) { fileRes = null; }
+
+    if (!fileRes) {
+      fileRes = await fetch("https://corsproxy.io/?" + encodeURIComponent(asset.browser_download_url));
+    }
+    if (!fileRes.ok) throw new Error(`Descarga fallida: ${fileRes.status}`);
+
+    const text = await fileRes.text();
+
+    // 5. Parsear
+    let valid;
+    if (asset.name.endsWith(".csv")) {
+      valid = parseHLTBCSV(text);
+    } else {
+      const raw = JSON.parse(text);
+      valid = (Array.isArray(raw) ? raw : []).filter(
+        g => g && typeof g.game_name === "string" && typeof g.comp_main === "number"
+      );
+    }
+    if (!valid.length) throw new Error("El archivo no contiene juegos válidos");
+
+    // 6. Persistir en IndexedDB
+    await dbPut(STORE_HLTB, { id: "main", data: valid });
+    hltbData = valid;
+
+    await dbPut(STORE_SETTINGS, { ...newMeta, lastUpdated: new Date().toISOString() });
+    updateHLTBStatus();
+    updateHLTBUpdateInfo();
+    if (force) showToast(`✓ Base de datos actualizada · ${valid.length.toLocaleString()} juegos`, "success");
+
+  } catch (e) {
+    console.warn("[HLTB Auto-update]", e.message);
+    await dbPut(STORE_SETTINGS, {
+      ...(meta ?? {}),
+      id:          "hltb_update_meta",
+      lastChecked: new Date().toISOString(),
+      lastFailed:  new Date().toISOString(),
+      failCount:   (meta?.failCount ?? 0) + 1
+    });
+    updateHLTBUpdateInfo();
+    if (force) showToast("No se pudo actualizar: " + e.message, "error");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Actualizar ahora`;
+    }
+  }
+}
+
+async function updateHLTBUpdateInfo() {
+  const el = document.getElementById("hltbUpdateInfo");
+  if (!el) return;
+  const meta = await dbGet(STORE_SETTINGS, "hltb_update_meta");
+  if (!meta) { el.textContent = ""; return; }
+
+  if (meta.lastFailed && !meta.lastUpdated) {
+    el.style.color = "var(--yellow)";
+    el.textContent = "La última actualización automática falló. Se reintentará en 1 h.";
+    return;
+  }
+  el.style.color = "var(--text-muted)";
+  const parts = [];
+  if (meta.lastUpdated) {
+    const d = new Date(meta.lastUpdated);
+    parts.push(`Actualizada: ${d.toLocaleDateString("es-ES")} · ${d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`);
+  }
+  if (meta.releaseTag) parts.push(`v${meta.releaseTag}`);
+  el.textContent = parts.join("  ·  ");
+}
+
+/* ================================================================
    INICIO
    ================================================================ */
 
@@ -1116,6 +1255,10 @@ async function init() {
   updateApiStatus();
   renderStats();
   render();
+
+  // Actualización automática HLTB en background (no bloquea el arranque)
+  autoUpdateHLTB();
+  updateHLTBUpdateInfo();
 
   // Re-lanzar fetch de puntuaciones para juegos que quedaron con score:null
   // (ocurre cuando el juego fue añadido y el fetch falló, o era la primera vez)
@@ -1636,6 +1779,7 @@ async function runRefetchScores() {
 
 document.getElementById("btnRefetchScores").addEventListener("click", runRefetchScores);
 document.getElementById("btnRefreshHeader").addEventListener("click", runRefetchScores);
+document.getElementById("btnUpdateHLTBDB").addEventListener("click", () => autoUpdateHLTB(true));
 
 /* ================================================================
    CRUD DE JUEGOS
