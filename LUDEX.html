@@ -308,8 +308,8 @@
     .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
     .toggle-switch input:checked + .toggle-slider::before { transform: translateX(16px); }
 
-    /* ===================== BACKUP PATH ROW ===================== */
-    .backup-path-row {
+    /* ===================== BACKUP STATUS ROW ===================== */
+    .backup-status-row {
       display: flex;
       align-items: center;
       gap: 8px;
@@ -317,16 +317,16 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 8px 12px;
-      font-size: 13px;
-      min-width: 0;
+      font-size: 12px;
     }
 
-    #backupPathText {
+    #backupTimestamp {
       flex: 1;
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      color: var(--text-muted);
     }
 
     /* ===================== LIST SEARCH BAR ===================== */
@@ -918,35 +918,31 @@
     <div class="modal-section">
       <h3>Backup Automático</h3>
       <p class="hint">
-        Elige un archivo donde se guardará el backup automáticamente. Cada vez que guardes, se
-        <strong style="color:var(--text);">sobreescribirá</strong> el mismo archivo sin acumular copias.
-        Requiere Chrome o Edge (File System Access API).
+        Guarda una copia en el almacenamiento interno del navegador (IndexedDB) tras cada cambio.
+        Funciona en todos los navegadores. Siempre se sobreescribe la misma copia, sin acumular versiones.
+        Descárgala como JSON cuando quieras.
       </p>
-      <div class="btn-row">
-        <button class="btn btn-sm" id="btnPickBackup">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          Elegir ruta de backup
-        </button>
-        <button class="btn btn-sm" id="btnBackupNow" disabled>
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          Guardar ahora
-        </button>
-        <button class="btn btn-sm btn-danger" id="btnClearBackupPath" style="display:none;">
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          Limpiar ruta
-        </button>
-      </div>
-      <div class="backup-path-row">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-        <span id="backupPathText">Sin ruta configurada</span>
-      </div>
-      <label id="autoBackupLabel" class="toggle-label" style="opacity:0.4;pointer-events:none;">
+      <label class="toggle-label">
         <span class="toggle-switch">
           <input type="checkbox" id="autoBackupToggle">
           <span class="toggle-slider"></span>
         </span>
         Backup automático al guardar cambios
       </label>
+      <div class="backup-status-row">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--text-muted)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="backupTimestamp">Sin backup guardado aún</span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-sm" id="btnBackupNow">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Guardar ahora
+        </button>
+        <button class="btn btn-sm" id="btnDownloadBackup" disabled>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Descargar backup
+        </button>
+      </div>
     </div>
 
   </div>
@@ -971,12 +967,11 @@ let hltbData = [];
 let games    = JSON.parse(localStorage.getItem("games") || "[]");
 let apiKey   = localStorage.getItem("rawg_api_key") || "";
 
-let sortKey    = "ratio";
-let sortDir    = "desc";
-let listFilter   = "";
-let acIndex      = -1;    // índice activo en el autocomplete
-let backupHandle = null;  // FileSystemFileHandle para backup automático
-let autoBackup   = localStorage.getItem("auto_backup") === "true";
+let sortKey  = "ratio";
+let sortDir  = "desc";
+let listFilter = "";
+let acIndex    = -1;   // índice activo en el autocomplete
+let autoBackup = localStorage.getItem("auto_backup") === "true";
 
 /* ================================================================
    ICONOS SVG (Feather-style, stroke only)
@@ -1044,85 +1039,59 @@ function dbDelete(store, key) {
 }
 
 /* ================================================================
-   BACKUP AUTOMÁTICO — File System Access API
-   Almacena un FileSystemFileHandle en IndexedDB para poder
-   sobreescribir siempre el mismo archivo sin diálogos adicionales.
+   BACKUP AUTOMÁTICO — IndexedDB (funciona en todos los navegadores)
+   La copia se guarda en IndexedDB sobreescribiendo siempre el mismo
+   registro. Se puede descargar como JSON en cualquier momento.
    ================================================================ */
 
-async function loadBackupHandle() {
-  try {
-    const stored = await dbGet(STORE_SETTINGS, "backup_handle");
-    if (stored?.handle) {
-      backupHandle = stored.handle;
-    }
-  } catch (e) {
-    backupHandle = null;
-  }
+async function saveBackupToCache() {
+  const payload = {
+    version:  1,
+    exported: new Date().toISOString(),
+    count:    games.length,
+    games
+  };
+  await dbPut(STORE_SETTINGS, {
+    id:      "auto_backup_data",
+    payload,
+    savedAt: new Date().toISOString()
+  });
   updateBackupUI();
 }
 
-function updateBackupUI() {
-  const pathText   = document.getElementById("backupPathText");
-  const btnNow     = document.getElementById("btnBackupNow");
-  const btnClear   = document.getElementById("btnClearBackupPath");
-  const autoLabel  = document.getElementById("autoBackupLabel");
-  const autoToggle = document.getElementById("autoBackupToggle");
-  if (!pathText) return;
-
-  if (backupHandle) {
-    pathText.textContent = backupHandle.name;
-    pathText.style.color = "var(--text)";
-    if (btnNow)   btnNow.disabled         = false;
-    if (btnClear) btnClear.style.display  = "";
-    if (autoLabel) {
-      autoLabel.style.opacity       = "1";
-      autoLabel.style.pointerEvents = "auto";
-    }
+async function updateBackupUI() {
+  const toggle = document.getElementById("autoBackupToggle");
+  const stamp  = document.getElementById("backupTimestamp");
+  const btnDl  = document.getElementById("btnDownloadBackup");
+  if (toggle) toggle.checked = autoBackup;
+  if (!stamp) return;
+  const stored = await dbGet(STORE_SETTINGS, "auto_backup_data");
+  if (stored?.savedAt) {
+    const d = new Date(stored.savedAt);
+    stamp.textContent = `Último backup: ${d.toLocaleDateString("es-ES")} · ${d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" })}`;
+    stamp.style.color = "var(--green)";
+    if (btnDl) btnDl.disabled = false;
   } else {
-    pathText.textContent = "Sin ruta configurada";
-    pathText.style.color = "var(--text-muted)";
-    if (btnNow)   btnNow.disabled         = true;
-    if (btnClear) btnClear.style.display  = "none";
-    if (autoLabel) {
-      autoLabel.style.opacity       = "0.4";
-      autoLabel.style.pointerEvents = "none";
-    }
+    stamp.textContent = "Sin backup guardado aún";
+    stamp.style.color = "var(--text-muted)";
+    if (btnDl) btnDl.disabled = true;
   }
-  if (autoToggle) autoToggle.checked = autoBackup;
 }
 
-async function writeBackup(silent = false) {
-  if (!backupHandle) return;
-  try {
-    // Verificar permiso; sólo solicitarlo si el usuario hizo clic manualmente
-    let perm = "granted";
-    if (backupHandle.queryPermission) {
-      perm = await backupHandle.queryPermission({ mode: "readwrite" });
-      if (perm !== "granted" && !silent) {
-        perm = await backupHandle.requestPermission({ mode: "readwrite" });
-      }
-    }
-    if (perm !== "granted") {
-      if (!silent) showToast("Permiso denegado para escribir el backup", "error");
-      return;
-    }
-
-    const payload = {
-      version:  1,
-      exported: new Date().toISOString(),
-      count:    games.length,
-      games
-    };
-
-    const writable = await backupHandle.createWritable();
-    await writable.write(JSON.stringify(payload, null, 2));
-    await writable.close();
-
-    if (!silent) showToast(`✓ Backup guardado: ${backupHandle.name}`, "success");
-  } catch (e) {
-    console.error("[Backup]", e.message);
-    if (!silent) showToast("Error al guardar el backup: " + e.message, "error");
+async function downloadBackup() {
+  const stored = await dbGet(STORE_SETTINGS, "auto_backup_data");
+  if (!stored?.payload) {
+    showToast("No hay backup guardado aún. Activa el backup automático o usa «Guardar ahora».", "error");
+    return;
   }
+  const blob = new Blob([JSON.stringify(stored.payload, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = url;
+  a.download = `ludex_backup_${new Date().toISOString().split("T")[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("✓ Backup descargado", "success");
 }
 
 /* ================================================================
@@ -1141,7 +1110,7 @@ async function init() {
     document.getElementById("apiKeyInput").value = apiKey;
   }
 
-  await loadBackupHandle();
+  await updateBackupUI();
 
   updateHLTBStatus();
   updateApiStatus();
@@ -1425,39 +1394,20 @@ document.getElementById("importFileInput").addEventListener("change", async func
    BACKUP AUTOMÁTICO — event listeners
    ================================================================ */
 
-document.getElementById("btnPickBackup").addEventListener("click", async () => {
-  if (!window.showSaveFilePicker) {
-    showToast("Tu navegador no soporta esta función. Usa Chrome o Edge.", "error");
-    return;
-  }
-  try {
-    const handle = await window.showSaveFilePicker({
-      suggestedName: "ludex_backup.json",
-      types: [{ description: "JSON backup", accept: { "application/json": [".json"] } }]
-    });
-    backupHandle = handle;
-    await dbPut(STORE_SETTINGS, { id: "backup_handle", handle });
-    updateBackupUI();
-    showToast(`✓ Ruta configurada: ${handle.name}`, "success");
-  } catch (e) {
-    if (e.name !== "AbortError") showToast("Error al seleccionar archivo: " + e.message, "error");
-  }
+document.getElementById("btnBackupNow").addEventListener("click", async () => {
+  await saveBackupToCache();
+  showToast("✓ Backup guardado", "success");
 });
 
-document.getElementById("btnBackupNow").addEventListener("click", () => writeBackup(false));
+document.getElementById("btnDownloadBackup").addEventListener("click", downloadBackup);
 
-document.getElementById("btnClearBackupPath").addEventListener("click", async () => {
-  backupHandle = null;
-  autoBackup = false;
-  localStorage.setItem("auto_backup", "false");
-  await dbDelete(STORE_SETTINGS, "backup_handle");
-  updateBackupUI();
-  showToast("Ruta de backup eliminada", "info");
-});
-
-document.getElementById("autoBackupToggle").addEventListener("change", function () {
+document.getElementById("autoBackupToggle").addEventListener("change", async function () {
   autoBackup = this.checked;
   localStorage.setItem("auto_backup", String(autoBackup));
+  if (autoBackup) {
+    await saveBackupToCache();
+    showToast("✓ Backup automático activado", "success");
+  }
 });
 
 /* ================================================================
@@ -1747,7 +1697,7 @@ function deleteGame(name) {
 
 function save() {
   localStorage.setItem("games", JSON.stringify(games));
-  if (autoBackup && backupHandle) writeBackup(true);
+  if (autoBackup) saveBackupToCache();
 }
 
 /* ================================================================
