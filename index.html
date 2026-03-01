@@ -751,6 +751,14 @@
     </div>
 
     <div class="card field">
+      <span class="field-label">Modo de cálculo</span>
+      <select id="calcModeSelect">
+        <option value="equilibrado">Equilibrado</option>
+        <option value="priorizar_cortos">Priorizar cortos</option>
+      </select>
+    </div>
+
+    <div class="card field">
       <span class="field-label">Filtros</span>
       <div class="filters">
         <label class="filter-chip">
@@ -981,6 +989,9 @@ let apiKey   = localStorage.getItem("rawg_api_key") || "";
 
 let sortKey  = "ratio";
 let sortDir  = "desc";
+let calcMode = "equilibrado"; // "equilibrado" | "priorizar_cortos"
+const PESO_CALIDAD = 0.7;    // peso calidad pura (modo equilibrado)
+const PESO_EFIC    = 0.3;    // peso eficiencia temporal (modo equilibrado)
 let listFilter = "";
 let acIndex    = -1;   // índice activo en el autocomplete
 let autoBackup = localStorage.getItem("auto_backup") === "true";
@@ -1927,7 +1938,13 @@ function getFiltered() {
     .map(g => {
       const hours  = g.durations?.[mode] || 0;
       const score  = g.score ?? 0;
-      const ratio  = hours > 0 && score > 0 ? Math.round(score * 10 / (hours + 10)) : null;
+      const hEff  = Math.max(hours, 0.5);
+      const efic  = score / Math.sqrt(hEff);
+      const ratio = score > 0 && hours > 0
+        ? (calcMode === "priorizar_cortos"
+            ? efic
+            : (score * PESO_CALIDAD) + (efic * PESO_EFIC))
+        : null;
       return { ...g, _hours: hours, _score: score, _ratio: ratio };
     })
     .sort((a, b) => {
@@ -1971,7 +1988,11 @@ function render() {
       <th class="${colSort("name")}"  data-key="name">Juego</th>
       <th class="${colSort("hours")}" data-key="hours">Horas</th>
       <th class="${colSort("score")}" data-key="score">Nota</th>
-      <th class="${colSort("ratio")}" data-key="ratio" title="Valor 0–100: nota × 10 / (horas + 10). Sin tope artificial: juegos más cortos y con mayor nota siempre por encima de los más largos con igual nota.">Valor</th>
+      <th class="${colSort("ratio")}" data-key="ratio" title="${
+        calcMode === "priorizar_cortos"
+          ? "Priorizar cortos — Valor = nota / √horas. Penalización no lineal: juegos cortos con buena nota dominan el ranking."
+          : "Equilibrado — Valor = (nota × 0.7) + (nota/√horas × 0.3). Calidad pura al 70%, eficiencia temporal al 30%."
+      }">Valor</th>
       <th></th>
     </tr>
   `;
@@ -2033,11 +2054,12 @@ function render() {
       </span>`;
     }
 
-    const ratioStr = g._ratio !== null ? String(g._ratio) : "—";
+    const ratioStr = g._ratio !== null ? g._ratio.toFixed(1) : "—";
     const ratioClass =
       g._ratio === null ? "" :
-      g._ratio >= 60    ? "ratio-high" :
-      g._ratio >= 30    ? "ratio-mid"  : "ratio-low";
+      calcMode === "priorizar_cortos"
+        ? (g._ratio >= 50 ? "ratio-high" : g._ratio >= 25 ? "ratio-mid" : "ratio-low")
+        : (g._ratio >= 70 ? "ratio-high" : g._ratio >= 55 ? "ratio-mid" : "ratio-low");
 
     /* Escapar el nombre para atributos y texto */
     const nameEsc  = encodeURIComponent(g.name);
@@ -2110,6 +2132,11 @@ function showToast(msg, type = "") {
 
 document.getElementById("modeSelect").addEventListener("change", () => {
   renderStats();
+  render();
+});
+
+document.getElementById("calcModeSelect").addEventListener("change", e => {
+  calcMode = e.target.value;
   render();
 });
 
