@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ludex — HLTB Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     /* ===================== RESET & VARIABLES ===================== */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1131,9 +1132,13 @@ async function autoUpdateHLTB(force = false) {
 
   try {
     // 1. Consultar última release en GitHub
+    console.log(`[HLTB] ${force ? "Actualización forzada" : "Comprobación automática"}. Última versión conocida: ${meta?.releaseTag ?? "ninguna"}`);
     const apiRes = await fetch(`https://api.github.com/repos/${HLTB_REPO}/releases/latest`);
-    if (!apiRes.ok) throw new Error(`GitHub API: ${apiRes.status}`);
+    if (apiRes.status === 403 || apiRes.status === 429) throw new Error(`Límite de peticiones a GitHub API (${apiRes.status}). Inténtalo más tarde.`);
+    if (!apiRes.ok) throw new Error(`GitHub API respondió con error ${apiRes.status}`);
     const release = await apiRes.json();
+    if (release.message) throw new Error(`GitHub API: ${release.message}`);
+    console.log(`[HLTB] Release encontrada: ${release.tag_name} (${release.published_at})`);
 
     const newMeta = {
       id:          "hltb_update_meta",
@@ -1147,28 +1152,38 @@ async function autoUpdateHLTB(force = false) {
 
     // 2. Si ya tenemos esta versión, no descargar
     if (!force && meta?.releaseTag === release.tag_name) {
+      console.log("[HLTB] Ya tenemos la versión más reciente, nada que descargar.");
       await dbPut(STORE_SETTINGS, newMeta);
       updateHLTBUpdateInfo();
       return;
     }
 
-    // 3. Encontrar asset CSV o JSON
-    const asset = release.assets?.find(a => a.name.endsWith(".csv") || a.name.endsWith(".json"));
-    if (!asset) throw new Error("No se encontró archivo CSV/JSON en la release");
+    // 3. Encontrar asset CSV o JSON (preferir CSV)
+    const asset = release.assets?.find(a => a.name.endsWith(".csv"))
+               ?? release.assets?.find(a => a.name.endsWith(".json"));
+    if (!asset) throw new Error(`No se encontró archivo CSV/JSON en la release. Assets disponibles: ${release.assets?.map(a => a.name).join(", ") || "ninguno"}`);
+    console.log(`[HLTB] Asset: ${asset.name} (${(asset.size / 1024 / 1024).toFixed(1)} MB)`);
 
     if (btn) btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Descargando…`;
 
-    // 4. Descargar con fallback al proxy CORS
+    // 4. Descargar: primero directo, luego dos proxies CORS como fallback
     let fileRes = null;
-    try {
-      fileRes = await fetch(asset.browser_download_url);
-      if (!fileRes.ok) fileRes = null;
-    } catch (_) { fileRes = null; }
-
-    if (!fileRes) {
-      fileRes = await fetch("https://corsproxy.io/?" + encodeURIComponent(asset.browser_download_url));
+    const attempts = [
+      { label: "directo",       url: asset.browser_download_url },
+      { label: "corsproxy.io",  url: `https://corsproxy.io/?${encodeURIComponent(asset.browser_download_url)}` },
+      { label: "allorigins.win",url: `https://api.allorigins.win/raw?url=${encodeURIComponent(asset.browser_download_url)}` },
+    ];
+    for (const { label, url } of attempts) {
+      try {
+        console.log(`[HLTB] Intentando descarga vía ${label}…`);
+        const r = await fetch(url);
+        if (r.ok) { fileRes = r; console.log(`[HLTB] Descarga exitosa vía ${label}`); break; }
+        console.warn(`[HLTB] ${label} respondió ${r.status}`);
+      } catch (err) {
+        console.warn(`[HLTB] ${label} falló:`, err.message);
+      }
     }
-    if (!fileRes.ok) throw new Error(`Descarga fallida: ${fileRes.status}`);
+    if (!fileRes) throw new Error("No se pudo descargar el archivo (directo y ambos proxies fallaron).");
 
     const text = await fileRes.text();
 
@@ -1218,9 +1233,15 @@ async function updateHLTBUpdateInfo() {
   const meta = await dbGet(STORE_SETTINGS, "hltb_update_meta");
   if (!meta) { el.textContent = ""; return; }
 
-  if (meta.lastFailed && !meta.lastUpdated) {
+  const failedAt  = meta.lastFailed  ? new Date(meta.lastFailed).getTime()  : 0;
+  const updatedAt = meta.lastUpdated ? new Date(meta.lastUpdated).getTime() : 0;
+  const failedAfterLastUpdate = failedAt > updatedAt;
+
+  if (meta.lastFailed && failedAfterLastUpdate) {
     el.style.color = "var(--yellow)";
-    el.textContent = "La última actualización automática falló. Se reintentará en 1 h.";
+    el.textContent = meta.lastUpdated
+      ? "La última actualización falló (se mantiene la copia anterior). Se reintentará en 1 h."
+      : "La actualización automática ha fallado. Se reintentará en 1 h. Puedes importar el archivo manualmente.";
     return;
   }
   el.style.color = "var(--text-muted)";
@@ -1906,7 +1927,7 @@ function getFiltered() {
     .map(g => {
       const hours  = g.durations?.[mode] || 0;
       const score  = g.score ?? 0;
-      const ratio  = hours > 0 && score > 0 ? Math.min(100, Math.round(score / hours * 10)) : null;
+      const ratio  = hours > 0 && score > 0 ? Math.round(score * 10 / (hours + 10)) : null;
       return { ...g, _hours: hours, _score: score, _ratio: ratio };
     })
     .sort((a, b) => {
@@ -1950,7 +1971,7 @@ function render() {
       <th class="${colSort("name")}"  data-key="name">Juego</th>
       <th class="${colSort("hours")}" data-key="hours">Horas</th>
       <th class="${colSort("score")}" data-key="score">Nota</th>
-      <th class="${colSort("ratio")}" data-key="ratio" title="Valor 0–100: nota por hora normalizada. Referencia: un juego de 10 h con nota perfecta = 100.">Valor</th>
+      <th class="${colSort("ratio")}" data-key="ratio" title="Valor 0–100: nota × 10 / (horas + 10). Sin tope artificial: juegos más cortos y con mayor nota siempre por encima de los más largos con igual nota.">Valor</th>
       <th></th>
     </tr>
   `;
@@ -2015,8 +2036,8 @@ function render() {
     const ratioStr = g._ratio !== null ? String(g._ratio) : "—";
     const ratioClass =
       g._ratio === null ? "" :
-      g._ratio >= 65    ? "ratio-high" :
-      g._ratio >= 35    ? "ratio-mid"  : "ratio-low";
+      g._ratio >= 60    ? "ratio-high" :
+      g._ratio >= 30    ? "ratio-mid"  : "ratio-low";
 
     /* Escapar el nombre para atributos y texto */
     const nameEsc  = encodeURIComponent(g.name);
