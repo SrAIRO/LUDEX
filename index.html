@@ -710,14 +710,54 @@
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+    /* ===================== RULETA ===================== */
+    .roulette-container { display:flex; justify-content:center; width:100%; }
+    #ruletaCanvas { border-radius:50%; box-shadow:0 0 0 3px var(--border),0 8px 32px rgba(0,0,0,.5); display:block; }
+    .roulette-result { width:100%; animation:fadeInUp .45s ease; }
+    .winner-box {
+      padding:18px 24px; background:var(--bg3);
+      border:1px solid var(--accent); border-radius:var(--radius);
+      text-align:center; margin-bottom:16px;
+    }
+    .winner-label {
+      font-size:11px; font-weight:700; letter-spacing:1px;
+      text-transform:uppercase; color:var(--accent-dim);
+      margin-bottom:10px; display:block;
+    }
+    .winner-name { font-size:21px; font-weight:700; color:var(--text); word-break:break-word; line-height:1.3; }
+    @keyframes fadeInUp {
+      from { opacity:0; transform:translateY(14px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    @keyframes ruletaFlash {
+      0%,35% { background:rgba(139,92,246,.28); outline:2px solid var(--accent-light); outline-offset:-2px; }
+      100%   { background:transparent; outline:none; }
+    }
+    .roulette-highlight { animation:ruletaFlash 2.5s ease-out forwards; }
+
   </style>
 </head>
 <body>
 
 <!-- ============================= HEADER ============================= -->
 <header>
-  <h1>Ludex <span>— HLTB Tracker</span></h1>
+  <h1 style="display:flex;align-items:center;gap:9px;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <rect x="2" y="10" width="28" height="15" rx="7.5" fill="#8b5cf6"/>
+      <rect x="9.5" y="14"  width="2.5" height="7"   rx="0.8" fill="#ede9fe" opacity="0.92"/>
+      <rect x="7"   y="16"  width="7.5" height="2.5"  rx="0.8" fill="#ede9fe" opacity="0.92"/>
+      <circle cx="20.5" cy="14.5" r="1.55" fill="#ede9fe" opacity="0.92"/>
+      <circle cx="23.5" cy="17"   r="1.55" fill="#ede9fe" opacity="0.92"/>
+      <circle cx="20.5" cy="19.5" r="1.55" fill="#ede9fe" opacity="0.92"/>
+      <circle cx="17.5" cy="17"   r="1.55" fill="#ede9fe" opacity="0.92"/>
+    </svg>
+    Ludex <span>— HLTB Tracker</span>
+  </h1>
   <div style="display:flex; gap:8px; align-items:center;">
+    <button class="btn btn-sm" id="btnRuleta" title="Ruleta — elige un juego pendiente al azar">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M16 8h.01M8 8h.01M12 12h.01M16 16h.01M8 16h.01"/></svg>
+      Ruleta
+    </button>
     <button class="btn btn-sm" id="btnRefreshHeader" title="Actualizar notas de juegos sin puntuación">
       <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       Actualizar notas
@@ -962,6 +1002,41 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Descargar backup
         </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================= MODAL RULETA ============================= -->
+<div class="modal-backdrop hidden" id="modalRuleta">
+  <div class="modal-box" style="max-width:440px;align-items:center;">
+
+    <div class="modal-header" style="width:100%;">
+      <h2 style="display:flex;align-items:center;gap:7px;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M16 8h.01M8 8h.01M12 12h.01M16 16h.01M8 16h.01"/></svg>
+        Ruleta de juegos
+      </h2>
+      <button class="btn btn-sm" id="btnCerrarRuleta">
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Cerrar
+      </button>
+    </div>
+
+    <div class="roulette-container">
+      <canvas id="ruletaCanvas" width="340" height="340"></canvas>
+    </div>
+
+    <p class="hint" id="ruletaHint" style="text-align:center;width:100%;min-height:18px;"></p>
+
+    <div id="ruletaResult" class="roulette-result hidden" style="width:100%;">
+      <div class="winner-box">
+        <span class="winner-label">🎉 ¡Juego seleccionado!</span>
+        <div class="winner-name" id="ruletaWinnerName"></div>
+      </div>
+      <div class="btn-row" style="justify-content:center;gap:10px;">
+        <button class="btn btn-sm" id="btnRuletaCerrar">Cerrar</button>
+        <button class="btn btn-primary btn-sm" id="btnRuletaIr">Ir al juego →</button>
       </div>
     </div>
 
@@ -2147,6 +2222,218 @@ document.getElementById("showDropped").addEventListener("change", render);
 document.getElementById("listSearch").addEventListener("input", function () {
   listFilter = this.value;
   render();
+});
+
+/* ================================================================
+   RULETA DE JUEGOS
+   ================================================================ */
+
+const RULETA_COLORS = [
+  '#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444',
+  '#06b6d4','#ec4899','#84cc16','#f97316','#6366f1'
+];
+
+let ruletaAudioCtx = null;
+let ruletaWinner   = null;
+let ruletaAnimId   = null;
+
+function playRuletaTick(vol = 0.15) {
+  try {
+    if (!ruletaAudioCtx) ruletaAudioCtx = new AudioContext();
+    if (ruletaAudioCtx.state === 'suspended') ruletaAudioCtx.resume();
+    const osc  = ruletaAudioCtx.createOscillator();
+    const gain = ruletaAudioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(ruletaAudioCtx.destination);
+    osc.type = 'triangle';
+    osc.frequency.value = 880;
+    const t0 = ruletaAudioCtx.currentTime;
+    gain.gain.setValueAtTime(vol, t0);
+    gain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.05);
+    osc.start(t0);
+    osc.stop(t0 + 0.05);
+  } catch (_) {}
+}
+
+function drawRuletaWheel(canvas, names, rotation) {
+  const ctx = canvas.getContext('2d');
+  const cx  = canvas.width  / 2;
+  const cy  = canvas.height / 2;
+  const r   = cx - 14;
+  const n   = names.length;
+  const seg = (2 * Math.PI) / n;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  for (let i = 0; i < n; i++) {
+    const a0 = rotation + i * seg;
+    const a1 = a0 + seg;
+
+    /* Sector */
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, a0, a1);
+    ctx.closePath();
+    ctx.fillStyle = RULETA_COLORS[i % RULETA_COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.32)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    /* Nombre */
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a0 + seg / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${n > 7 ? 11 : 13}px system-ui,sans-serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur  = 3;
+    const label = names[i].length > 19 ? names[i].slice(0, 17) + '…' : names[i];
+    ctx.fillText(label, r - 14, 4.5);
+    ctx.restore();
+  }
+
+  /* Aro exterior */
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  /* Círculo central */
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, 2 * Math.PI);
+  ctx.fillStyle = '#141421';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  /* Puntero (triángulo dorado) en las 12 en punto */
+  ctx.beginPath();
+  ctx.moveTo(cx,      14);   // punta hacia abajo
+  ctx.lineTo(cx - 13, -4);
+  ctx.lineTo(cx + 13, -4);
+  ctx.closePath();
+  ctx.fillStyle   = '#fbbf24';
+  ctx.shadowColor = 'rgba(0,0,0,0.7)';
+  ctx.shadowBlur  = 5;
+  ctx.fill();
+  ctx.shadowBlur  = 0;
+}
+
+function openRuleta() {
+  const pending = games.filter(g => g.status === 'pending');
+  if (pending.length < 2) {
+    showToast('Necesitas al menos 2 juegos pendientes para la ruleta', 'error');
+    return;
+  }
+
+  /* Seleccionar entre 5 y 10 juegos al azar */
+  const shuffled = [...pending].sort(() => Math.random() - 0.5);
+  const count    = Math.min(pending.length, 5 + Math.floor(Math.random() * 6));
+  const selected = shuffled.slice(0, count);
+  const names    = selected.map(g => g.name);
+
+  /* Determinar ganador de antemano */
+  const winnerIdx = Math.floor(Math.random() * names.length);
+  ruletaWinner = selected[winnerIdx];
+
+  /* Calcular la rotación total para que el ganador quede en el puntero */
+  const segSize   = (2 * Math.PI) / names.length;
+  const winnerMid = (winnerIdx + 0.5) * segSize;
+  const ptr       = -Math.PI / 2;                        // 12 en punto (canvas coords)
+  const offset    = ((ptr - winnerMid) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const fullTurns = 8 + Math.floor(Math.random() * 5);   // 8–12 vueltas completas
+  const totalRot  = fullTurns * 2 * Math.PI + offset;
+
+  /* Preparar modal */
+  document.getElementById('ruletaResult').classList.add('hidden');
+  document.getElementById('ruletaHint').textContent = '¡Girando! Buena suerte…';
+
+  const canvas = document.getElementById('ruletaCanvas');
+  drawRuletaWheel(canvas, names, 0);
+  document.getElementById('modalRuleta').classList.remove('hidden');
+
+  /* Animación */
+  const DURATION = 10_000;
+  const t0       = performance.now();
+  let lastSeg    = -1;
+
+  function segAtPtr(rot) {
+    const a = ((ptr - rot) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+    return Math.floor(a / segSize) % names.length;
+  }
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function frame(ts) {
+    const t   = Math.min((ts - t0) / DURATION, 1);
+    const rot = totalRot * easeOut(t);
+    drawRuletaWheel(canvas, names, rot);
+
+    /* Tick al cruzar cada segmento; volumen proporcional a la velocidad */
+    const seg = segAtPtr(rot);
+    if (seg !== lastSeg) {
+      lastSeg = seg;
+      playRuletaTick(0.04 + 0.18 * (1 - easeOut(t)));
+    }
+
+    if (t < 1) {
+      ruletaAnimId = requestAnimationFrame(frame);
+    } else {
+      drawRuletaWheel(canvas, names, totalRot);
+      document.getElementById('ruletaHint').textContent = '';
+      document.getElementById('ruletaWinnerName').textContent = ruletaWinner.name;
+      document.getElementById('ruletaResult').classList.remove('hidden');
+      playRuletaTick(0.3);
+    }
+  }
+
+  if (ruletaAnimId) cancelAnimationFrame(ruletaAnimId);
+  ruletaAnimId = requestAnimationFrame(frame);
+}
+
+function closeRuleta() {
+  if (ruletaAnimId) { cancelAnimationFrame(ruletaAnimId); ruletaAnimId = null; }
+  document.getElementById('modalRuleta').classList.add('hidden');
+}
+
+document.getElementById('btnRuleta').addEventListener('click', openRuleta);
+document.getElementById('btnCerrarRuleta').addEventListener('click', closeRuleta);
+document.getElementById('btnRuletaCerrar').addEventListener('click', closeRuleta);
+document.getElementById('modalRuleta').addEventListener('click', e => {
+  if (e.target.id === 'modalRuleta') closeRuleta();
+});
+
+document.getElementById('btnRuletaIr').addEventListener('click', () => {
+  if (!ruletaWinner) return;
+  const name = ruletaWinner.name;
+  closeRuleta();
+
+  /* Asegurarse de que los pendientes sean visibles */
+  const cbPending = document.getElementById('showPending');
+  if (!cbPending.checked) cbPending.checked = true;
+
+  /* Filtrar por el nombre ganador y re-renderizar */
+  listFilter = name;
+  const searchInput = document.getElementById('listSearch');
+  if (searchInput) searchInput.value = name;
+  render();
+
+  /* Scroll y destello en la fila ganadora */
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#tableBody tr');
+    for (const row of rows) {
+      const td = row.querySelector('td.game-name');
+      if (td && td.textContent.trim() === name) {
+        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        row.classList.add('roulette-highlight');
+        break;
+      }
+    }
+  }, 80);
 });
 
 /* ================================================================
