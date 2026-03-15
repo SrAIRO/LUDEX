@@ -1,6 +1,6 @@
 <div align="center">
 
-# LUDEX — HLTB Tracker
+# LUDEX — Tracker dde Juegos
 
 Lightweight browser-based game backlog manager powered by  
 HowLongToBeat data and RAWG scores.
